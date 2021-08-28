@@ -31,10 +31,6 @@ async function FollowingPostMessageGet(db,following,username){
 
          GetDbFolloweing();
 
-
-            // var query={"username":username,'Feed':[]}
-            // var params={};
-            // params['$post']={'Feed':{'$each':[myObj]}}
         }
       
 
@@ -78,7 +74,7 @@ router.get('/feed',function(req,res){
                    var FollowingPresent=result,Following;
                    FollowingPresent.forEach((value)=>{
                        Following=value["following"];
-                       /*if(!IamFollowing[Following])*/ IamFollowing[Following]=1;
+                       /*if(!IamFollowing[Following]) Length to follow */ IamFollowing[Following]=1;
                     })
                   
               var allFollowingList=Object.keys(IamFollowing).map(String);
@@ -102,7 +98,7 @@ router.get('/feed',function(req,res){
                      Feed.push(result);
                      res.status(200).json({res:Feed})
                  })
-                 //res.status(200).json({res:result})
+                 
              })    
         
         }) 
