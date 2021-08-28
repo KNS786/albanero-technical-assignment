@@ -5,83 +5,114 @@ var router=express.Router();
 var MangoDbClient=require('mongodb').MongoClient;
 var url="mongodb://localhost:27017/";
 
-/*
-router.get('/feed',function(req,res){
-     var LoginUserName=req.body.username;
-     //if current user refer to the post table 
-     //get my post
-     MangoDbClient.connect(url,function(error,results){
-         if(error) throw error;
-         var feed=results.db('albanero');
-         feed.collection('following').find({'username':req.body.username}).toArray(async function(errors,result){
-             if(errors) throw errors;
-             //if login username in createpost presnent the followers to take
+async function FollowingPostMessageGet(db,following,username){
+     db.collection('createpost').find({'username':following}).toArray(function(error,result){
+        if(error) throw error;
+        if(result.length > 0){
+            //following found already found the user
             console.log(result);
-            var currentFollowingList=result;
-            var getmyFollowing={},c;
-            currentFollowingList.filter((value,index)=>{
-                c=value.following[0];
-                if(!getmyFollowing[c])
-                   getmyFollowing[c]=1;
-            })
-            console.log(getmyFollowing);
-           var MyFeed=[]
-            var FollowingList=Object.keys(getmyFollowing).map(String);
-            //get postmessage in respect with createPost collection 
-            async function getFeedFollowing(following){
-                feed.collection('createpost').find(following).toArray(function(errors,result){
-                    if(errors) throw errors;
-                    result.filter((value,index)=>{
-                        var params={};
-                        params['$set']={'postedBy':value.username,'feed':value.post}
-                        
-                        feed.collection('feed').updateMany({'username':LoginUserName},params,{upsert:true},function(errors,results){
-                            if(errors) throw errors ;
-                            return true;
-                        })
-                    })
-                    //return  res.status(200).json({feed:result})
+            //store db
+        async function GetDbFolloweing(){
+            var myObj={};
+            var myRes=Promise.all(result.map(async (value)=>{
+                 myObj.username=value.username;
+                 myObj.post=value.mypost;
+                 var query={'username':username,'Feed':[]}
+                 var params={}
+                 params['$push']={'Feed':{'$each':[myObj]}}
+                db.collection('feeds').updateMany(query,params,{'upsert':true},function(errors,result){
+                     if(errors) throw errors;
+                     return true;
                 })
-            }
-            async function PostUniqueFollowing(){
-                var result=Promise.all(FollowingList.map(async(value)=>{
-                    query={"username":value}
-                    await getFeedFollowing(query);
 
-                })
-             )
-               //return res.status(200).json({feed:JSON.stringify(MyFeed)});
-            }
-            async function GetAllMyFeed(){
-                await feed.collection('feed').find({}).toArray(function(errors,result){
-                    if(errors) throw err;
-                    return res.status(200).json({'feeds':result})
-                })
-            }
-              await PostUniqueFollowing();
-              await GetAllMyFeed();
-    
 
-         })
-         
+            })) 
+        }
+
+         GetDbFolloweing();
+
+
+            // var query={"username":username,'Feed':[]}
+            // var params={};
+            // params['$post']={'Feed':{'$each':[myObj]}}
+        }
+      
+
      })
-})*/
+}
 
+
+
+///following username with respect body
 router.get('/feed',function(req,res){
     var username=req.body.username;
-    console.log(username)
-    if(username){
-        MangoDbClient.connect(url,function(errors,results){
-            var MyFeed=results.db('albanero');
-            MyFeed.collection("createpost").find({'username':req.body.username}).toArray(function(errors,result){
-                if(errors) throw errors;
-                return res.status(200).json({err:'this is cool '})
-            })
-        })
+    if(username) {
+        MangoDbClient.connect(url,function(error,result){
+             var myFollower=result.db('albanero');
+             var IamFollowing={}
+             myFollower.collection('feeds').find({'username':username}).toArray(function(error,result){
+                 if(error) throw error;
+                 if(result.length==0){
+                     myFollower.collection('createpost').find({'username':username}).toArray(function(error,result){
+                        if(error) throw error;
+                        console.log("Result"+result);
+
+                        var obj={
+                            'username':req.body.username,
+                            'post':[result.mypost]
+                        }
+                        myFollower.collection('feeds').insertMany(obj,function(errors,result){
+                           if(errors) throw errors;
+                           
+                           return true;
+                        })
+
+
+                     })
+                   
+                 }
+
+             })
+             myFollower.collection('following').find({'username':req.body.username}).toArray(function(errors,result){
+                   if(errors) throw errors;
+                   var FollowingPresent=result,Following;
+                   FollowingPresent.forEach((value)=>{
+                       Following=value["following"];
+                       /*if(!IamFollowing[Following])*/ IamFollowing[Following]=1;
+                    })
+                  
+              var allFollowingList=Object.keys(IamFollowing).map(String);
+              allFollowingList.push(req.body.username);
+              async function Data(){
+                   var myAllRes=Promise.all(allFollowingList.map(async(value)=>{
+                       //  console.log("My values"+value);//working correct 
+                         await FollowingPostMessageGet(myFollower,value,req.body.username);
+                   }));
+
+              }
+              Data();              
+
+             })
+             myFollower.collection('feeds').find({'username':username}).toArray(function(error,result){
+                 if(error) throw error;
+                 var Feed=[];
+                 Feed.push(result)
+                 myFollower.collection('createpost').find({'username':username}).toArray(function(error,result){
+                     if(error) throw error;
+                     Feed.push(result);
+                     res.status(200).json({res:Feed})
+                 })
+                 //res.status(200).json({res:result})
+             })    
+        
+        }) 
+
+
     }
     
-
-
 })
+
+
+
 
 module.exports=router ;
