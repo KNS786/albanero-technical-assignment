@@ -3,110 +3,58 @@ var router=express.Router();
 
 //mongodb connection 
 var MangoDbClient=require('mongodb').MongoClient;
-var url="mongodb://localhost:27017/";
-
-async function FollowingPostMessageGet(db,following,username){
-     db.collection('createpost').find({'username':following}).toArray(function(error,result){
-        if(error) throw error;
-        if(result.length > 0){
-            //following found already found the user
-            console.log(result);
-            //store db
-        async function GetDbFolloweing(){
-            var myObj={};
-            var myRes=Promise.all(result.map(async (value)=>{
-                 myObj.username=value.username;
-                 myObj.post=value.mypost;
-                 var query={'username':username,'Feed':[]}
-                 var params={}
-                 params['$push']={'Feed':{'$each':[myObj]}}
-                db.collection('feeds').updateMany(query,params,{'upsert':true},function(errors,result){
-                     if(errors) throw errors;
-                     return true;
-                })
+var uri="mongodb://localhost:27017/";
+var client=new MangoDbClient(uri)
 
 
-            })) 
-        }
+async function GetMyFollower(result){
+    var newArray=[],res=[];
+    result.filter((value)=>{
+        newArray.push(value);
+    })
+    newArray.forEach((value)=>{
+       res.push(value.following[0])
+    })    
+   return res;   
 
-         GetDbFolloweing();
-
-        }
-      
-
-     })
 }
 
-
-
-///following username with respect body
-router.get('/feed',function(req,res){
-    var username=req.body.username;
-    if(username) {
-        MangoDbClient.connect(url,function(error,result){
-             var myFollower=result.db('albanero');
-             var IamFollowing={}
-             myFollower.collection('feeds').find({'username':username}).toArray(function(error,result){
-                 if(error) throw error;
-                 if(result.length==0){
-                     myFollower.collection('createpost').find({'username':username}).toArray(function(error,result){
-                        if(error) throw error;
-                        console.log("Result"+result);
-
-                        var obj={
-                            'username':req.body.username,
-                            'post':[result.mypost]
-                        }
-                        myFollower.collection('feeds').insertMany(obj,function(errors,result){
-                           if(errors) throw errors;
-                           
-                           return true;
-                        })
-
-
-                     })
-                   
-                 }
-
-             })
-             myFollower.collection('following').find({'username':req.body.username}).toArray(function(errors,result){
-                   if(errors) throw errors;
-                   var FollowingPresent=result,Following;
-                   FollowingPresent.forEach((value)=>{
-                       Following=value["following"];
-                       /*if(!IamFollowing[Following]) Length to follow */ IamFollowing[Following]=1;
-                    })
-                  
-              var allFollowingList=Object.keys(IamFollowing).map(String);
-              allFollowingList.push(req.body.username);
-              async function Data(){
-                   var myAllRes=Promise.all(allFollowingList.map(async(value)=>{
-                       //  console.log("My values"+value);//working correct 
-                         await FollowingPostMessageGet(myFollower,value,req.body.username);
-                   }));
-
-              }
-              Data();              
-
-             })
-             myFollower.collection('feeds').find({'username':username}).toArray(function(error,result){
-                 if(error) throw error;
-                 var Feed=[];
-                 Feed.push(result)
-                 myFollower.collection('createpost').find({'username':username}).toArray(function(error,result){
-                     if(error) throw error;
-                     Feed.push(result);
-                     res.status(200).json({res:Feed})
-                 })
-                 
-             })    
-        
-        }) 
-
-
+async function GetFeed(arr,db){
+    var myRes=[];
+    for(var username of arr){
+        myRes=myRes.concat(
+            await db.find({'username':username}).toArray()
+        )
     }
     
+    return myRes;
+}
+
+router.get('/feed',async function(req,res){
+    var username=req.body.username;
+    await client.connect();
+    var db=client.db('albanero');
+    var CurrentFollowing =db.collection('following')
+    var GetPostFollowing=db.collection('createpost')
+    CurrentFollowing.find({'username':username}).toArray(async function(error,result){
+        if(error);
+        if(result.length > 0){
+            //var Feed=[];
+           var myFollower=await GetMyFollower(result);
+           myFollower.unshift(req.body.username);
+           var Feed=await GetFeed(myFollower,GetPostFollowing);
+           res.status(200).json({msg:Feed})
+
+
+        }
+
+
+    })
+
+
+ 
 })
+
 
 
 

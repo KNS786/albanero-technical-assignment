@@ -3,15 +3,18 @@ var router=express.Router();
 
 //mongodb connection 
 var MangoDbClient=require('mongodb').MongoClient;
-var url="mongodb://localhost:27017/";
-var db=require('../db.connection');
+var uri="mongodb://localhost:27017/";
+var client=new MangoDbClient(uri)
 
-router.get('/follower',function(req,res){
+
+router.get('/follower',async function(req,res){
     var LoginUserName=req.body.username;
     if(LoginUserName){
-        MangoDbClient.connect(url,function(error,results){
-            var myFollower=results.db('albanero');
-            var query={'username':LoginUserName}
+           await client.connect();
+           var myFollower=client.db('albanero');
+
+          // var myFollower=results.db('albanero');
+          var query={'username':LoginUserName}
            if(error) throw err;
            myFollower.collection('follower').find(query).toArray(function(err,allFollower){
                if(err)throw err;
@@ -19,7 +22,6 @@ router.get('/follower',function(req,res){
                return res.status(200).json({Follower:allFollower})
            })
 
-        })
 
     }else{
         return res.status(200).json({msg:"please signup "})
