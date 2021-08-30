@@ -14,14 +14,11 @@ router.get('/following',async function(req,res){
         await client.connect();
         var myFolloweing=client.db('albanero');
 
-            //var myFolloweing=results.db('albanero');
-            var query={'username':LoginUserName}
-           if(error) throw err;
-           myFolloweing.collection('following').find(query).toArray(function(err,allFolloweing){
-               if(err)throw err;
-               if(allFolloweing.length==0) return res.status(200).json({msg:'select you like to following '})
-               return res.status(200).json({Followeing:allFolloweing})
-           })
+          //var myFolloweing=results.db('albanero');
+          var query={'username':LoginUserName}
+          const MyFolloweing=await myFolloweing.collection('following').find(query).toArray();
+          return res.status(200).json({'myFollowing':MyFolloweing});
+
     }else{
         return res.status(200).json({Feed:"please signup "})
     }

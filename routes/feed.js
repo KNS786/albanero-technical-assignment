@@ -8,6 +8,8 @@ var client=new MangoDbClient(uri)
 
 
 async function GetMyFollower(result){
+   // console.log("REsult "+result);
+
     var newArray=[],res=[];
     result.filter((value)=>{
         newArray.push(value);
@@ -30,33 +32,21 @@ async function GetFeed(arr,db){
     return myRes;
 }
 
+
 router.get('/feed',async function(req,res){
     var username=req.body.username;
     await client.connect();
     var db=client.db('albanero');
     var CurrentFollowing =db.collection('following')
     var GetPostFollowing=db.collection('createpost')
-    CurrentFollowing.find({'username':username}).toArray(async function(error,result){
-        if(error);
-        if(result.length > 0){
-            //var Feed=[];
-           var myFollower=await GetMyFollower(result);
-           myFollower.unshift(req.body.username);
-           var Feed=await GetFeed(myFollower,GetPostFollowing);
-           res.status(200).json({msg:Feed})
-
-
-        }
-
-
-    })
-
-
- 
+    var currentUser=await GetPostFollowing.find({'username':username}).toArray();
+    var result=await CurrentFollowing.find({'username':username}).toArray();
+    var myFollower=await GetMyFollower(result);
+    // myFollower.unshift(req.body.username);
+    var Feed=await GetFeed(myFollower,GetPostFollowing);
+    Feed.push(currentUser);
+    return res.status(200).json({msg:Feed})
 })
-
-
-
 
 
 module.exports=router ;

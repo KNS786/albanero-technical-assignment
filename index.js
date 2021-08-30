@@ -2,7 +2,7 @@ var express=require('express');
 var app=express();
 var PORT=7000 || process.env.PORT
 var MangoDbClient=require('mongodb').MongoClient;
-var url="mongodb://localhost:27017/albanero";
+var uri="mongodb://localhost:27017/albanero";
 var bodyParser=require('body-parser')
 
 app.use(bodyParser.urlencoded({extended:true}))

@@ -14,15 +14,8 @@ router.get('/alluser',async function(req,res){
      if(username.length > 0){
       await client.connect();
       var dballUser=client.db('albanero');
-
-          if(error) throw error;
-          var dballUser=result.db('albanero');
-          var query={'username':username};
-          dballUser.collection('user').find({}).toArray(function(usererrors,alluser_results){
-              if(usererrors) throw usererrors;
-             // console.log(alluser_results);
-              return res.status(200).json({Alluser:alluser_results})
-          })
+      var alluser_results=await dballUser.collection('user').find({}).toArray();
+      return res.status(200).json({alluser:alluser_results});
       
     }else{
         return res.status(404).json({msg:'please signup '})

@@ -15,19 +15,14 @@ router.post('/signup',async function(req,res){
       var dbFind=client.db('albanero');
 
       //  var dbFind=results.db('albanero');
-        dbFind.collection('user').find({"username":body.username},{projection:{"username":body.username}}).toArray(function(errorDoc,docPresented){
-            if(errorDoc) return errorDoc;
-            if(docPresented.length==0){
-                 dbFind.collection('user').insertOne(body,function(insertErr,doc){
-                     if(insertErr) throw insertErr;
-                     res.status(200).json({inserted : "user Registed successfully"})
-                 })
+        var dbUserFined=await dbFind.collection('user').find({"username":body.username},{projection:{"username":body.username}}).toArray();
+            if(dbUserFined.length==0){
+                 await dbFind.collection('user').insertOne(body);
+                 return res.status(200).json({'msg':'successfully signup '})
             }else{
-                res.status(404).json({msg:"username already exists"})
+               return res.status(404).json({msg:"username already exists"})
             }
-    
-        
-        })
+
      
 })
 

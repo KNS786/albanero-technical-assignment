@@ -12,7 +12,6 @@ router.post('/choosefollowing/',async function(req,res){
     var LoginUserName=String(req.query.username);
   //  var FolloweingName=(req.query.FollowingName);
   var FolloweingName=(req.body.FollowingName);
-    var user={LoginUserName,FolloweingName}
      //var LoginUserName=req.body.username;
      if(LoginUserName){
           await client.connect();
@@ -24,22 +23,15 @@ router.post('/choosefollowing/',async function(req,res){
          var params ={};
          params['$set']={username:LoginUserName}
          params['$push']={following:{'$each':[FolloweingName]}};
-
-         selectFollowing.collection('following').updateMany(query,params,{'upsert':true},function(errors,results){
-              if(errors)throw errors;
-             
-              return res.status(200).json({msg : `your followeing ${FolloweingName}`});
-         })
-
-      
-      
+        const CurrentFollowing=await selectFollowing.collection('following').updateMany(query,params,{'upsert':true});
+        return res.status(200).json({msg : `your followeing ${FolloweingName}`});
    }
    else{
         return res.status(200).json({res:'please signup '})
    }
 
 })
-function Followers(result,LoginUserName ,callback){
+async function Followers(result,LoginUserName ,callback){
    try{
      var followercnt=0;
      var followers={myFollower:[]};
@@ -66,50 +58,36 @@ router.get('/viewmyfollowers',async function(req,res){
      var LoginUserName=req.body.username;
      if(LoginUserName){
           await client.connect();
-          var selectFollowing=client.db('albanero');
+          const selectFollowing=client.db('albanero');
 
-             selectFollowing.collection('following').find({}).toArray(async function(errors,result){
-                  if(errors) throw errors;
-                  //if present in the following list in current login username return username
-                  await Followers(result,LoginUserName,async function(err,resolve){
-                       if(err) throw err;
-                       var query ={
-                         username:LoginUserName,
-                         follower:[]
-                     }
-                    var params ={};
-                    params['$set']={username:LoginUserName}
-                    params['$push']={follower:{'$each':[resolve]}};
+          const getMyFollowing = await selectFollowing.collection("following").find({}).toArray();
+          //if present in the following list in current login username return username
+          await Followers(getMyFollowing,LoginUserName,async function(err,resolve){
+               if(err) throw err;
+                 var query ={
+                    username:LoginUserName,
+                    follower:[]
+               }
+               var params ={};
+               params['$set']={username:LoginUserName}
+               params['$push']={follower:{'$each':[resolve]}};
                     
-
-                    selectFollowing.collection('follower').updateMany(query,params,{'upsert':true},function(errors,results){
-                         if(errors)throw errors;
-                         selectFollowing.collection('follower').find({"username":LoginUserName}).toArray(function(errors,results){
-                             if(errors) throw err;
-                             return res.status(200).json({msg:results});
-                         })
-                         //return res.status(200).json({msg :"updated successfully "});
-                    })
-                      //return res.status(200).json({msg:resolve})
-                  })
-               
-             })
-           
+              const UpdateFollower = await selectFollowing.collection('follower').updateMany(query,params,{upsert:true});
+              const  myFollowers=await selectFollowing.collection('follower').find({"username":LoginUserName}).toArray();
+              res.status(200).json({myfollower:myFollowers});  
+          })
+                     
      }
      else{return res.status(200).json({msg :'please signup'})}
 })
 
 
 //display following collection-- who i am follow 
-router.get('/viewFollowing',function(req,res){
-    // var LoginUserName=req.query.username;
-     MangoDbClient.connect(url,function(error,results){
+router.get('/viewFollowing',async function(req,res){
+          await client.connect();
           var selectFollowing=results.db('albanero');
-          selectFollowing.collection('following').find({}).toArray(function(errors,result){
-               if(errors) throw errors;
-               return res.status(200).json({"all":result});
-          })
-     })
+          const myFollowing=await selectFollowing.collection('following').find({}).toArray();
+          res.status(200).json({myFollowing:myFollowing});
 })
 
 
@@ -119,11 +97,8 @@ router.get('/myallfollowers',async function(req,res){
    if(req.body.username){
           await client.connect();
           var selectFollowing=client.db('albanero');
-         
-          selectFollowing.collection('follower').find({}).toArray(function(errors,result){
-               if(errors) throw errors;
-               return res.status(200).json({"all":result});
-          })
+          const getAllFollowing=await selectFollowing.collection('follower').find({}).toArray();
+          res.status(200).json({getAllFollowing:getAllFollowing});
   }else{
        return res.status(404).json({err:'please signup '})
   }
