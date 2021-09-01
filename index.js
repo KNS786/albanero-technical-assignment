@@ -1,15 +1,17 @@
-var express=require('express');
-var app=express();
-var dotenv=require('dotenv');
+const express=require('express');
+const app=express();
+const dotenv=require('dotenv');
 dotenv.config();
-var PORT= process.env.PORT
-var bodyParser=require('body-parser')
+const PORT= process.env.PORT
+const bodyParser=require('body-parser')
 
 app.use(bodyParser.urlencoded({extended:true}))
 app.use(bodyParser.json());
 app.use(express.urlencoded({extended:true}))
 app.use(express.json());
 
+
+//db connection
 require('./db.connection')
 
 
@@ -21,6 +23,9 @@ app.use('/',require('./routes/alluser'))
 app.use('/',require('./routes/createPost'));
 app.use('/',require('./routes/feed'));
 
-app.listen(PORT,function(){
-    console.log("App running");
+app.listen(PORT,()=>{
+    console.log("App Running");
+    
 })
+
+

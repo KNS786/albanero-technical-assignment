@@ -1,14 +1,13 @@
-var express=require('express');
-var router=express.Router();
+const express=require('express');
+const router=express.Router();
 
-//mongodb connection 
-var MangoDbClient=require('mongodb').MongoClient;
-var MONGODB_URI=process.env.MONGODB_URI;
-var DB_NAME=process.env.DB_NAME;
-var client=new MangoDbClient(MONGODB_URI)
 
-var DB_COLLECTION_POST=process.env.DB_COLLECTION_POST
-var DB_COLLECTION_FOLLOWING=process.env.DB_COLLECTION_FOLLOWING;
+//config
+const {DB_NAME,DB_COLLECTION_POST,DB_COLLECTION_FOLLOWING}=require('../config')
+
+//db
+const  {get}=require('../db.connection');
+
 
 async function GetMyFollower(result){
 
@@ -38,8 +37,8 @@ async function GetFeed(arr,db){
 
 router.get('/feed',async function(req,res){
     var username=req.body.username;
-    await client.connect();
-    var db=client.db(DB_NAME);
+    var results=get();
+    var db=results.db(DB_NAME);
     var CurrentFollowing =db.collection(DB_COLLECTION_FOLLOWING)   //'following'
     var GetPostFollowing=db.collection(DB_COLLECTION_POST)//'createpost'
     var currentUser=await GetPostFollowing.find({'username':username}).toArray();
