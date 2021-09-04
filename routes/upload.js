@@ -5,20 +5,19 @@ const router=express.Router();
 const logger=require('../middleware/logger')
 
 //config
-const {DB_COLLECTION_USER,DB_NAME}=require('../config');
+const {DB_NAME,DB_COLLECTION_UPLOAD_FILES}=require('../config');
 //db
 const {get}=require('../db.connection');
 
 //Set Storage Engine
-function setStorage(LoginUserName){
+function setStorage(){
   var storage=multer.diskStorage({
-    destination:`./uploads/${LoginUserName}/`,
+    destination:`./uploads/`,
     filename:function(req,file,cb){
         cb(null,file.fieldname+' '+Date.now()+path.extname(file.originalname));
 
     }
-  })
-
+  });
   var upload=multer({
     storage:storage,
     fileFilter:function(req,file,cb){
@@ -41,9 +40,10 @@ function checkFileType(file,cb){
     }
 }
 
-async function UploadFile(req,res,next,LoginUserName){
-    let upload=setStorage(LoginUserName);
+async function UploadFile(req,res){
+    let upload=setStorage();
      upload(req,res,(err)=>{
+         console.log(req["file"]);
         if(err){
             res.sendStatus(404).json({msg:'something went wrong'})
         }else{
@@ -51,8 +51,17 @@ async function UploadFile(req,res,next,LoginUserName){
               res.send({fileErr:'no file selected!'})
           }
           else{
-            // res.status(200).json({msg:"file uploaded successfully"});
-            res.status(200).json({'username':'navani'});
+            //store the db for user upload information
+            async function Db(){
+                let result=get();
+                let dbFind=result.db(DB_NAME);
+                let query={'username':req.body.username,'FileInfo':[]}
+                let params ={};
+                params['$push']={'FileInfo':{'$each':[req['file']]}}
+                await dbFind.collection(DB_COLLECTION_UPLOAD_FILES).updateMany(query,params,{upsert:true});
+
+            }
+           Db().then(()=>res.status(200).json({"upload":"file upload successfully!"}))
           }
   
         }
@@ -60,16 +69,19 @@ async function UploadFile(req,res,next,LoginUserName){
 
 }
 
-
 router.post('/upload',async function(req,res){
     //create unique bucket
-    let LoginUserName="kholi";
-    await UploadFile(req,res,LoginUserName);
-
+    await UploadFile(req,res);
 })
 
 
-
+//get all uploads file info
+router.get('/uploadsinfo',async function(req,res){
+    let result=get();
+    let dbFind=result.db(DB_NAME);
+    let getAllRes = await dbFind.collection(DB_COLLECTION_UPLOAD_FILES).find({}).toArray();
+    res.status(200).json({info:getAllRes});
+})
 
 
 module.exports=router;
